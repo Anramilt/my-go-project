@@ -3,11 +3,13 @@ package main
 import (
 	"context" //для управления жизненным циклом процесса завершения работы
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os" //обработка сигналов
 	"os/signal"
 	"strconv"
+	"sync/atomic"
 	"syscall" //для определения сигналов, которые мы хоти прослушивать
 	"time"
 )
@@ -51,9 +53,9 @@ func logging(logger *log.Logger) func(http.Handler) http.Handler {
 
 var healthy int32
 
-//204 - исправно, 503 - неисправно
+// 204 - исправно, 503 - неисправно
 func healthCheck(w http.ResponseWriter, r *http.Request) {
-	if atomic.LoadInt32(&healthy) == 1{
+	if atomic.LoadInt32(&healthy) == 1 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -69,7 +71,29 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	//r.RemoteAddr - IP-адрес клиента, сделавшего запрос
 	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
 	logger.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
-	fmt.Fprintf(w, "Hello world!\n")
+
+	if r.Method == http.MethodGet {
+		fmt.Fprintf(w, "Hello world!\n")
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+	//var inputText string
+	//var stuff []byte
+	/*if _, err := fmt.Fscanf(r.Body, "%s", &inputText); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}*/
+	stuff, _ := io.ReadAll(r.Body)
+	//logger.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+	//fmt.Fprintf(w, "Hello world!\n")
+	w.Write(stuff)
+
+	//modifiedText := "Modified Echo: " + inputText
+	//fmt.Fprintf(w, modifiedText)
 }
 
 func main() {
@@ -79,8 +103,8 @@ func main() {
 	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
 
 	//регистрирует нашу функцию обработчика  для обработки всех запросов GET
-	http.HandleFunc("GET /", handler)
-	http.HandleFunc("GET /healthz", healthCheck)
+	http.HandleFunc("/", handler)
+	http.HandleFunc("/healthz", healthCheck)
 	logger.Println("Server is starting...")
 	/*err := http.ListenAndServe(":8080", nil) //запускает сервер на порту
 	if err != nil {
@@ -96,9 +120,9 @@ func main() {
 	server := &http.Server{ //создаём экземпляр с настраиваиваемыми тайм-аутами
 		Addr:         ":8080",
 		Handler:      tracing(nextRequestID)(logging(logger)(http.DefaultServeMux)), //обработчик http
-		ReadTimeout:  5 * time.Second,  //для чтения
-		WriteTimeout: 10 * time.Second, //записи
-		IdleTimeout:  15 * time.Second, // простоя
+		ReadTimeout:  5 * time.Second,                                               //для чтения
+		WriteTimeout: 10 * time.Second,                                              //записи
+		IdleTimeout:  15 * time.Second,                                              // простоя
 	}
 	done := make(chan bool)         //канал для оповещения об остановке сервера
 	quit := make(chan os.Signal, 1) //канал для прослушивания SIGINT и SIGTERM сигналов (Ctrl-C например)
