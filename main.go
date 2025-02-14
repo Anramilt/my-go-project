@@ -81,19 +81,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
-	//var inputText string
-	//var stuff []byte
-	/*if _, err := fmt.Fscanf(r.Body, "%s", &inputText); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
-		return
-	}*/
-	stuff, _ := io.ReadAll(r.Body)
-	//logger.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
-	//fmt.Fprintf(w, "Hello world!\n")
-	w.Write(stuff)
 
-	//modifiedText := "Modified Echo: " + inputText
-	//fmt.Fprintf(w, modifiedText)
+	stuff, _ := io.ReadAll(r.Body)
+	w.Write(stuff)
 }
 
 func main() {
