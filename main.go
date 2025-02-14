@@ -49,8 +49,15 @@ func logging(logger *log.Logger) func(http.Handler) http.Handler {
 	}
 }
 
+var healthy int32
+
+//204 - исправно, 503 - неисправно
 func healthCheck(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
+	if atomic.LoadInt32(&healthy) == 1{
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	w.WriteHeader(http.StatusServiceUnavailable)
 }
 
 // вызывается для каждого входящего запроса
@@ -97,10 +104,11 @@ func main() {
 	quit := make(chan os.Signal, 1) //канал для прослушивания SIGINT и SIGTERM сигналов (Ctrl-C например)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
+	atomic.StoreInt32(&healthy, 1)
 	go func() {
 		<-quit
 		logger.Println("Server is shutting down...")
-
+		atomic.StoreInt32(&healthy, 0)
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
