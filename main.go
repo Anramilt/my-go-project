@@ -18,6 +18,7 @@ const (
 	requestIDKey key = 0
 )
 
+/*добавляет уник-й идентификатор запроса к каждому запросу*/
 func tracing(nextRequestID func() string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +33,7 @@ func tracing(nextRequestID func() string) func(http.Handler) http.Handler {
 	}
 }
 
+/*регистрирует сведения о запросе (id, метод, путь, ip-адрес, UserAgent()*/
 func logging(logger *log.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +80,7 @@ func main() {
 		logger.Fatal("ListenAndServe", err)
 	}*/
 
+	//ген. id запроса на основе текущего времени
 	nextRequestID := func() string {
 		return strconv.FormatInt(time.Now().UnixNano(), 10)
 	}
@@ -85,7 +88,7 @@ func main() {
 	//плавное завершение работы
 	server := &http.Server{ //создаём экземпляр с настраиваиваемыми тайм-аутами
 		Addr:         ":8080",
-		Handler:      tracing(nextRequestID)(logging(logger)(http.DefaultServeMux)),
+		Handler:      tracing(nextRequestID)(logging(logger)(http.DefaultServeMux)), //обработчик http
 		ReadTimeout:  5 * time.Second,  //для чтения
 		WriteTimeout: 10 * time.Second, //записи
 		IdleTimeout:  15 * time.Second, // простоя
