@@ -1,1 +1,4 @@
-INSERT INTO testone(id, one) values ('1', 'один');
+CREATE TABLE testtwo(
+    id INTEGER primary key,
+    name varchar(80)
+);

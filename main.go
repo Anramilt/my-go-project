@@ -2,13 +2,52 @@ package main
 
 import (
 	"fmt"
+	"log"
 )
 
 func main() {
-	conn := ConnectDB()
-	defer conn.Close()
+	ConnectDB()
+
 	fmt.Println("Hello world!")
+
+	rows, err := getTestoneList()
+	if err != nil {
+		log.Fatalf("error getting rows in tableone: %v", err)
+	}
+
+	/*err = addRowTestone(2, "два")
+	if err != nil {
+		log.Fatalf("Error additing rows in tableone: %v", err)
+	}*/
+
+	fmt.Println("Список всех значений в таблице testone:")
+	for _, row := range rows {
+		fmt.Printf("ID: %d, One: %s\n", row.ID, row.One)
+	}
+
+	/*tables, err := getTable()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("Список таблиц в БД:")
+	for _, table := range tables {
+		fmt.Println(" - ", table)
+	}*/
 }
+
+/*tables, err := getTable()
+if err != nil {
+	fmt.Println(err)
+	return
+}
+
+fmt.Println("Список таблиц в БД:")
+for _, table := range tables {
+	fmt.Println(" - ", table)
+}*/
+//defer db.Close()
 
 /*package main
 
