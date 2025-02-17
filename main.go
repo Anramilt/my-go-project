@@ -1,18 +1,29 @@
 package main
 
 import (
-	"context" //для управления жизненным циклом процесса завершения работы
+	"fmt"
+)
+
+func main() {
+	conn := ConnectDB()
+	defer conn.Close()
+	fmt.Println("Hello world!")
+}
+
+/*package main
+
+import (
+	"fmt"
+	//для управления жизненным циклом процесса завершения работы
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os" //обработка сигналов
-	"os/signal"
-	"strconv"
-	"sync/atomic"
-	"syscall" //для определения сигналов, которые мы хоти прослушивать
-	"time"
+	//для определения сигналов, которые мы хоти прослушивать
+	//"my-go-project-1/db"
 )
+
 
 type key int
 
@@ -20,7 +31,7 @@ const (
 	requestIDKey key = 0
 )
 
-/*добавляет уник-й идентификатор запроса к каждому запросу*/
+//добавляет уник-й идентификатор запроса к каждому запросу
 func tracing(nextRequestID func() string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +46,7 @@ func tracing(nextRequestID func() string) func(http.Handler) http.Handler {
 	}
 }
 
-/*регистрирует сведения о запросе (id, метод, путь, ip-адрес, UserAgent()*/
+//регистрирует сведения о запросе (id, метод, путь, ip-адрес, UserAgent()
 func logging(logger *log.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -61,11 +72,12 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusServiceUnavailable)
 }
-
+*/
 // вызывается для каждого входящего запроса
 // http.ResponseWriter - интерфейс для написания ответа
 // http.Request - структура, содержащая информацию о входящем запросе
-func handler(w http.ResponseWriter, r *http.Request) {
+
+/*func handler(w http.ResponseWriter, r *http.Request) {
 	//r.Method - медот HTTP(GET, POST, PUT) и др.
 	//r.URL.Path - часть пути URL-адреса
 	//r.RemoteAddr - IP-адрес клиента, сделавшего запрос
@@ -87,19 +99,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	conn := ConnectDB()
+	defer GetDB().Close()
+	fmt.Println("Hello world!")
 	//os.Stdout - направляет журналы на стандартный вывод
 	//"http: " - префикс для сообщений журнала
 	//log.LstdFlags - включает дату и время в каждой записи журнала
-	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
+	/*logger := log.New(os.Stdout, "http: ", log.LstdFlags)
 
 	//регистрирует нашу функцию обработчика  для обработки всех запросов GET
 	http.HandleFunc("/", handler)
 	http.HandleFunc("/healthz", healthCheck)
 	logger.Println("Server is starting...")
-	/*err := http.ListenAndServe(":8080", nil) //запускает сервер на порту
-	if err != nil {
-		logger.Fatal("ListenAndServe", err)
-	}*/
+
 
 	//ген. id запроса на основе текущего времени
 	nextRequestID := func() string {
@@ -141,3 +154,4 @@ func main() {
 	<-done //сигнал, указывающий, что сервер остановился
 	logger.Println("Server stopped")
 }
+*/

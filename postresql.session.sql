@@ -1,0 +1,1 @@
+INSERT INTO testone(id, one) values ('1', 'один');

@@ -5,9 +5,9 @@
             "server": "localhost",
             "port": 5432,
             "driver": "PostgreSQL",
-            "name": "godb",
-            "database": "postgres",
-            "username": "sofia",
+            "name": "postresql",
+            "database": "godb",
+            "username": "testadmin",
             "password": "12345678"
         }
     ]
