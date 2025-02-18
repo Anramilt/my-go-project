@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -20,6 +20,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	logger.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
 
 	if r.Method == http.MethodGet {
+		token := r.Header.Get("Authorization")
+		if !validateToken(token) {
+			http.Error(w, "Unauthorization", http.StatusUnauthorized)
+			return
+		}
+
 		message, err := getEchomessageList()
 		if err != nil {
 			http.Error(w, "Error read in DB", http.StatusInternalServerError)
@@ -34,9 +40,30 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(response))
 		return
 	}
-	if r.Method == http.MethodPost {
 
-		body, err := io.ReadAll(r.Body)
+	if r.Method == http.MethodPost && r.URL.Path == "/login" {
+		var user struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		err := json.NewDecoder(r.Body).Decode(&user)
+		if err != nil || user.Username == "" || user.Password == "" {
+			http.Error(w, "Invalid input", http.StatusBadRequest)
+			return
+		}
+
+		//Здесь должна быть проверка пользователя в БД
+		//
+
+		token, err := generateToken(user.Username)
+		if err != nil {
+			http.Error(w, "Could not create token", http.StatusInternalServerError)
+			return
+		}
+		w.Write([]byte(token))
+		return
+
+		/*body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Error read query", http.StatusBadRequest)
 			return
@@ -51,6 +78,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Message saved in DB: %s\n", message)
 		return
 
+		*/
 	}
 
 	//stuff, _ := io.ReadAll(r.Body)
