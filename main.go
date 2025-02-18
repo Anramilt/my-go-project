@@ -1,41 +1,122 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	//r.Method - медот HTTP(GET, POST, PUT) и др.
+	//r.URL.Path - часть пути URL-адреса
+	//r.RemoteAddr - IP-адрес клиента, сделавшего запрос
+	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
+	logger.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+
+	if r.Method == http.MethodGet {
+		message, err := getEchomessageList()
+		if err != nil {
+			http.Error(w, "Error read in DB", http.StatusInternalServerError)
+			return
+		}
+
+		var response string
+		for _, msg := range message {
+			response += fmt.Sprintf("ID: %d, Message: %s \n", msg.ID, msg.Message)
+		}
+
+		w.Write([]byte(response))
+		return
+	}
+	if r.Method == http.MethodPost {
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Error read query", http.StatusBadRequest)
+			return
+		}
+		message := string(body)
+		err = addEchotoDB(message)
+		if err != nil {
+			http.Error(w, "Error write in DB", http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "Message saved in DB: %s\n", message)
+		return
+
+	}
+
+	//stuff, _ := io.ReadAll(r.Body)
+	//w.Write(stuff)
+}
 
 func main() {
 	ConnectDB()
 
 	fmt.Println("Hello world!")
 
-	rows, err := getTestoneList()
-	if err != nil {
-		log.Fatalf("error getting rows in tableone: %v", err)
+	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
+
+	//регистрирует нашу функцию обработчика  для обработки всех запросов GET
+	http.HandleFunc("/", handler)
+	logger.Println("Server is starting...")
+
+	//плавное завершение работы
+	server := &http.Server{ //создаём экземпляр с настраиваиваемыми тайм-аутами
+		Addr:         ":8080",
+		Handler:      nil,              //обработчик http
+		ReadTimeout:  5 * time.Second,  //для чтения
+		WriteTimeout: 10 * time.Second, //записи
+		IdleTimeout:  15 * time.Second, // простоя
 	}
+	done := make(chan bool)         //канал для оповещения об остановке сервера
+	quit := make(chan os.Signal, 1) //канал для прослушивания SIGINT и SIGTERM сигналов (Ctrl-C например)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	/*err = addRowTestone(2, "два")
-	if err != nil {
-		log.Fatalf("Error additing rows in tableone: %v", err)
-	}*/
+	go func() {
+		<-quit
+		logger.Println("Server is shutting down...")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 
-	fmt.Println("Список всех значений в таблице testone:")
-	for _, row := range rows {
-		fmt.Printf("ID: %d, One: %s\n", row.ID, row.One)
+		server.SetKeepAlivesEnabled(false)
+		if err := server.Shutdown(ctx); err != nil {
+			logger.Fatalf("Could not gracefully shutdown the server: %v \n", err)
+		}
+		close(done)
+	}()
+
+	//вызываем server.ListenAndServe() запуск сервера
+	logger.Println("Server is ready to handle requests at :8080")
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Fatalf("couls not listen on :8080 %v\n", err)
 	}
+	<-done //сигнал, указывающий, что сервер остановился
+	logger.Println("Server stopped")
 
-	/*tables, err := getTable()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println("Список таблиц в БД:")
-	for _, table := range tables {
-		fmt.Println(" - ", table)
-	}*/
 }
+
+/*rows, err := getTestoneList()
+if err != nil {
+	log.Fatalf("error getting rows in tableone: %v", err)
+}
+*/
+/*err = addRowTestone(2, "два")
+if err != nil {
+	log.Fatalf("Error additing rows in tableone: %v", err)
+}*/
+
+/*fmt.Println("Список всех значений в таблице testone:")
+for _, row := range rows {
+	fmt.Printf("ID: %d, One: %s\n", row.ID, row.One)
+}*/
 
 /*tables, err := getTable()
 if err != nil {
@@ -47,7 +128,6 @@ fmt.Println("Список таблиц в БД:")
 for _, table := range tables {
 	fmt.Println(" - ", table)
 }*/
-//defer db.Close()
 
 /*package main
 
@@ -139,8 +219,6 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
-	conn := ConnectDB()
-	defer GetDB().Close()
 	fmt.Println("Hello world!")
 	//os.Stdout - направляет журналы на стандартный вывод
 	//"http: " - префикс для сообщений журнала

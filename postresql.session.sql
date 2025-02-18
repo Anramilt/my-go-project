@@ -1,4 +1,1 @@
-CREATE TABLE testtwo(
-    id INTEGER primary key,
-    name varchar(80)
-);
+INSERT INTO echomessage (message) VALUES ('Тест-текст');

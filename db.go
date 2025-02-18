@@ -25,6 +25,12 @@ type TestOne struct {
 	One string `db:"one"`
 }
 
+// Структура для хранения эхо
+type EchoMessage struct {
+	ID      int    `db:"id"`
+	Message string `db:"message"`
+}
+
 func ConnectDB() error {
 	var err error
 	db, err = sqlx.Connect("postgres", fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
@@ -33,7 +39,27 @@ func ConnectDB() error {
 	return err
 }
 
-func getTestoneList() ([]TestOne, error) {
+func getEchomessageList() ([]EchoMessage, error) {
+	query := `SELECT id, message FROM echomessage`
+	var messages []EchoMessage
+	err := db.Select(&messages, query)
+	if err != nil {
+		return nil, fmt.Errorf("error selecting rows in echomessage: %w", err)
+	}
+	return messages, nil
+}
+
+func addEchotoDB(message string) error {
+	query := `INSERT INTO echomessage (message) VALUES ($1)`
+	_, err := db.Exec(query, message)
+	if err != nil {
+		return fmt.Errorf("error inserting echo: %w", err)
+	}
+	fmt.Println("Echo added in table: ", message)
+	return nil
+}
+
+/*func getTestoneList() ([]TestOne, error) {
 	query := `SELECT id, one FROM testone`
 	var rows []TestOne
 	err := db.Select(&rows, query)
@@ -41,8 +67,9 @@ func getTestoneList() ([]TestOne, error) {
 		return nil, fmt.Errorf("error selecting rows in testone: %w", err)
 	}
 	return rows, nil
-}
+}*/
 
+/*
 func addRowTestone(id int, one string) error {
 	query := `INSERT INTO testone (id, one) VALUES ($1, $2)`
 	_, err := db.Exec(query, id, one)
@@ -50,7 +77,7 @@ func addRowTestone(id int, one string) error {
 		return fmt.Errorf("error inserting row: %w", err)
 	}
 	return nil
-}
+}*/
 
 /*
 func getTable() ([]string, error) {
