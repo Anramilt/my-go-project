@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -27,6 +26,9 @@ func generateToken(username string) (string, error) {
 	return token.SignedString(jwtKey)
 }
 
+// Функция проверки токена доступа
+// Получает: token string - токен доступа
+// Возвращает: bool - валиден ли токен
 func validateToken(token string) bool {
 	parsed, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		return jwtKey, nil
@@ -34,7 +36,13 @@ func validateToken(token string) bool {
 	if err != nil {
 		return false
 	}
-	expiresString := parsed.Claims.(jwt.MapClaims)["Expires"].(string)
+	//exp - стандартное поле для хранения времени истечения токена
+	if claims, ok := parsed.Claims.(jwt.MapClaims); ok && parsed.Valid {
+		if exp, ok := claims["exp"].(float64); ok {
+			return time.Now().Unix() < int64(exp)
+		}
+	}
+	/*expiresString := parsed.Claims.(jwt.MapClaims)["Expires"].(string)
 	expires, err := strconv.ParseInt(expiresString, 10, 64)
 	if err != nil {
 		return false
@@ -42,5 +50,6 @@ func validateToken(token string) bool {
 	if time.Now().Unix() > expires {
 		return false
 	}
-	return err == nil
+	return err == nil*/
+	return false
 }

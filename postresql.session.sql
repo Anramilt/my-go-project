@@ -1,1 +1,1 @@
-INSERT INTO echomessage (message) VALUES ('Тест-текст');
+DELETE FROM echomessage WHERE id = 4;
