@@ -11,10 +11,10 @@ import (
 	"time"
 )
 
-const (
+/*const (
 	ExpectedUsername = "user"
 	ExpectedPassword = "secret"
-)
+)*/
 
 func main() {
 	ConnectDB()
@@ -25,9 +25,12 @@ func main() {
 
 	//регистрирует нашу функцию обработчика  для обработки всех запросов GET
 	//http.HandleFunc("/", handler)
-	http.HandleFunc("/login", authHandler) //обработчик авторизации
-	http.HandleFunc("/echo", echoHandler)  //предоставление доступа (к эхо) по авторизации
-	http.HandleFunc("/addecho", addEchoHandler)
+	http.HandleFunc("/login", authHandler)              //обработчик авторизации
+	http.HandleFunc("/registration", addAccountHandler) //добавление аккаунта в БД
+	http.HandleFunc("/echo", auth(echoHandler))         //предоставление доступа (к эхо) по авторизации
+	http.HandleFunc("/addecho", auth(addEchoHandler))   //добавить БД в эхо
+
+	//http.HandleFunc("/registration", auth(reHandler))
 	logger.Println("Server is starting...")
 
 	//плавное завершение работы
@@ -62,7 +65,6 @@ func main() {
 	}
 	<-done //сигнал, указывающий, что сервер остановился
 	logger.Println("Server stopped")
-
 }
 
 //

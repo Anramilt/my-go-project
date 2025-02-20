@@ -28,26 +28,19 @@ func respondWithError(text string, w http.ResponseWriter) {
 	}
 }
 
-/*func authorized(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		w.WriteHeader(403)
-		respondWithError("Bad method", w)
-		return
+// Функция для предоставления доступа по авторизации
+func auth(fn func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer"))
+		if !validateToken(token) {
+			w.WriteHeader(400)
+			respondWithError("Invalid token", w)
+			return
+		}
+		fn(w, r)
 	}
-
-	var user struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Message  string `json:"message"`
-	}
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil || user.Username == "" || user.Password == "" /*|| user.Message == "" * {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
-		return
-	}
-
 }
-*/
+
 // r.Method - медот HTTP(GET, POST, PUT) и др.
 // r.URL.Path - часть пути URL-адреса
 // r.RemoteAddr - IP-адрес клиента, сделавшего запрос
@@ -75,8 +68,20 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 
 	//Здесь должна быть проверка пользователя в БД
 	//
-	if user.Username != ExpectedUsername && user.Password != ExpectedPassword {
+	/*if user.Username != ExpectedUsername && user.Password != ExpectedPassword {
 		http.Error(w, "Unauthorization", http.StatusUnauthorized)
+		return
+	}*/
+
+	//Проверка пользователя в БД
+	exists, err := userExist(user.Username, user.Password)
+	if err != nil {
+		logger.Printf("Database error: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	if !exists {
+		http.Error(w, "Unauthorized. Please register at /registration", http.StatusUnauthorized)
 		return
 	}
 
@@ -86,26 +91,33 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write([]byte(token))
+}
 
-	/*body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error read query", http.StatusBadRequest)
+func addAccountHandler(w http.ResponseWriter, r *http.Request) {
+	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
+	logger.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
+	if r.Method != "POST" {
+		w.WriteHeader(403)
+		respondWithError("Bad method", w)
 		return
 	}
-	message := string(body)
-	err = addEchotoDB(message)
+	var user struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil || user.Username == "" || user.Password == "" {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	err = addAccounttoDB(user.Username, user.Password)
 	if err != nil {
+		//logger.Printf("Error writing to DB: %v", err)
 		http.Error(w, "Error write in DB", http.StatusInternalServerError)
 		return
 	}
-
-	fmt.Fprintf(w, "Message saved in DB: %s\n", message)
-	return
-
-	*/
-
-	//stuff, _ := io.ReadAll(r.Body)
-	//w.Write(stuff)
+	fmt.Fprintf(w, "Account saved in DB: %s\n", user.Username)
 }
 
 func echoHandler(w http.ResponseWriter, r *http.Request) {
@@ -114,13 +126,13 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
 
 	if r.Method == http.MethodGet {
-		token := r.Header.Get("Authorization")
+		/*token := r.Header.Get("Authorization")
 		token = strings.TrimPrefix(token, "Bearer ")
 		log.Println(token)
 		if !validateToken(token) {
 			http.Error(w, "Unauthorized!", http.StatusUnauthorized)
 			return
-		}
+		}*/
 
 		message, err := getEchomessageList()
 		if err != nil {
@@ -139,7 +151,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 func addEchoHandler(w http.ResponseWriter, r *http.Request) {
-	// /add
+	// /add echo
 	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
 	logger.Printf("Received request: %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
 
@@ -159,14 +171,14 @@ func addEchoHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid input", http.StatusBadRequest)
 		return
 	}
-
-	token := r.Header.Get("Authorization")
+	//нужна ли проверка ли обертке?
+	/*token := r.Header.Get("Authorization")
 	token = strings.TrimPrefix(token, "Bearer ")
 	log.Println(token)
 	if !validateToken(token) {
 		http.Error(w, "Unauthorized!", http.StatusUnauthorized)
 		return
-	}
+	}*/
 
 	message := user.Message
 	err = addEchotoDB(message)
